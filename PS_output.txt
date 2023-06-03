@@ -1,0 +1,23 @@
+FCAP_increase = 200
+SW_gain_comp = 39985
+SW_gain_cournot = 8678
+
+FCAP_increase = 200
+SW_gain_comp = 39985
+SW_gain_cournot = 8678
+
+FCAP_increase = 500
+SW_gain_comp = 86809
+SW_gain_cournot = 25211
+
+FCAP_increase = 500
+SW_gain_comp = 86809
+SW_gain_cournot = 25211
+
+FCAP [*] :=
+NtoS  1500
+;
+
+SW_gain_comp = 86809
+SW_gain_cournot = 25211
+

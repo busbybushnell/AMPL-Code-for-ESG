@@ -1,0 +1,155 @@
+options presolve 0; 
+
+
+option path_options "cumulative_iteration_limit = 40000";
+
+
+
+#option path_options "cumulative_iteration_limit = 1000000 major_iteration_limit = 1000 crash_nbchange_limit=20 nms_stepsize_init_min=0.05";
+
+
+
+#include /Users/bushnell/Dropbox/ECN_221_Shared/ECN_290/Problem_sets/PS1_code&solutions/ESG_PS2.run;
+#include /Users/bushnell/Dropbox/ECN_221_Shared/ECN_290/Problem_sets/PS1_code&solutions/ESG_PS2.run;
+
+#model /Users/bushnell/Dropbox/ECN_221_Shared/ECN_290/Problem_sets/PS1_code&solutions/ESG_complement_PS2.mod;
+
+#data /Users/bushnell/Dropbox/ECN_221_Shared/ECN_290/Problem_sets/PS1_code&solutions/ESG_data_new.txt;
+
+
+
+
+option solver knitro;
+
+option eexit -500000;
+
+option bad_subscripts -5000000;
+
+#option solver_msg 0;
+
+option knitro_options "outlev=0 outmode = 1";
+
+param FCAP_increase := 500;
+var gencost = sum {f in FIRMS, r in REGION, (i,f,r) in UNITS, d in DAY, h in HOUR} (mc[i,f,r]*q[i,f,r,d,h]);
+var CS {r in REGION} = sum{d in DAY, h in HOUR} (0.5*(-a[r,d,h]/b[r] - p[r,d,h])*(region_demand[r,d,h]) + p[r,d,h]*region_demand[r,d,h]);
+
+##### Increase slope of demand
+		let b["North"] := -10;
+		let b["South"] := -10;	
+##### Define all firms as COURNOT 
+		for {SET in FIRMS}
+			{
+			let firmtype[SET] := 2
+			};				
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 3;
+ if solve_result = "solved" then {
+		display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h]); 
+				};	
+##### PART B
+##### Set MC of Nuke and Hyrdo units to zero (Nuke is unit 75 and Hydro is unit 72)
+##### Note that MC of third hydro unit was already zero
+		let mc[72,7,"North"] := 0;
+		let mc[75,7,"North"] := 0;	
+##### Slope of demand is already -10 (set above)
+##### Set transmission capacity to 1000
+		let FCAP["NtoS"] := 1000;			
+##### Define all firms as competitive
+		for {SET in FIRMS}
+			{
+			let firmtype[SET] := 1
+			};		
+##### SOLVE!					
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 2;
+    	if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h]); 
+				};				
+##### Define all firms as COURNOT 
+		for {SET in FIRMS}
+			{
+			let firmtype[SET] := 2
+			};	
+##### SOLVE!							
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 2;
+ if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h]); 
+				};	
+##### Part C
+##### Define Social Welfare and also 4 parameters I will use to calculate the differences in SW
+		var Social_Welfare = sum{r in REGION, d in DAY, h in HOUR} (0.5*(-a[r,d,h]/b[r] - p[r,d,h])*(region_demand[r,d,h]) + p[r,d,h]*region_demand[r,d,h])
+			- sum {f in FIRMS, r in REGION, (i,f,r) in UNITS, d in DAY, h in HOUR} (mc[i,f,r]*q[i,f,r,d,h]);	
+		param PS_calc1;
+		param PS_calc2;	
+		param SW_gain_comp;
+		param SW_gain_cournot;	
+			
+##### Define all firms as competitive
+		for {SET in FIRMS}
+			{
+			let firmtype[SET] := 1
+			};		
+##### SOLVE!					
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 3;
+    	if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h],CS[r],gencost,Social_Welfare); 
+				};	
+		let PS_calc1 := Social_Welfare;	
+##### Set transmission capacity to 1500
+		let FCAP["NtoS"] := 1500;	
+##### SOLVE!					
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 3;
+    	if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h],CS[r],gencost,Social_Welfare); 
+				};	
+		let PS_calc2 := Social_Welfare;	
+		let SW_gain_comp := PS_calc2 - PS_calc1;						
+##### Define all firms as COURNOT 
+		for {SET in FIRMS}
+			{
+			let firmtype[SET] := 2
+			};	
+##### Reduce Transmission capacity back down to 1000;
+		let FCAP["NtoS"] := 1000;		
+##### SOLVE!							
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 3;
+ if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h],Social_Welfare,gencost, CS[r]); 
+				};	
+		let PS_calc1 := Social_Welfare;										
+##### Set transmission capacity to 1500
+		let FCAP["NtoS"] := 1500;	
+##### SOLVE!					
+		solve;
+		option display_width 250;
+		option display_1col 2500;
+		option display_round 3;
+    	if solve_result = "solved" then {
+			display {f in FIRMS, r in REGION, d in DAY, h in HOUR} (p[r,d,h], y[r,d,h], qfirm[f,r,d,h],Social_Welfare,gencost,CS[r]); 
+				};	
+		let PS_calc2 := Social_Welfare;	
+		let SW_gain_cournot := PS_calc2 - PS_calc1;	
+		option display_round 0;
+			display FCAP, SW_gain_comp, SW_gain_cournot;
+#			display FCAP, SW_gain_comp, SW_gain_cournot >> /Users/bushnell/Dropbox/ECN_221_Shared/ECN_290/Problem_sets/PS1_code&solutions/PS_output.txt; ;
+			
+		
+		
+			
+
